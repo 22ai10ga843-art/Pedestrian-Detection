@@ -104,8 +104,11 @@ def init_detector():
 
 hog = init_detector()
 
-def detect_people(frame_bgr):
-    frame = imutils.resize(frame_bgr, width=800)
+def detect_people(frame_bgr, is_video=False):
+    # Use smaller width for video to significantly speed up processing on cloud servers
+    process_width = 400 if is_video else 800
+    frame = imutils.resize(frame_bgr, width=process_width)
+    
     # HOG detection
     rects, weights = hog.detectMultiScale(frame, winStride=(4, 4), padding=(8, 8), scale=1.05)
     
@@ -186,12 +189,18 @@ with col2:
         metrics_placeholder = st.empty()
         stframe = st.empty()
         
+        frame_count = 0
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
                 
-            result, count = detect_people(frame)
+            frame_count += 1
+            # Skip frames to speed up processing (process 1 out of every 3 frames)
+            if frame_count % 3 != 0:
+                continue
+                
+            result, count = detect_people(frame, is_video=True)
             
             with metrics_placeholder.container():
                 m1, m2 = st.columns(2)
